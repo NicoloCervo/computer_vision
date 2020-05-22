@@ -4,6 +4,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 
+#include <array>
 #include <cstdio>
 #include <mutex>
 #include <string_view>
@@ -33,6 +34,12 @@ namespace lab6
 
         T w{};
         T h{};
+    };
+    /* Rectangular object in an image. */
+    struct ImgObject
+    {
+        std::array<cv::Point2f, 4> vertices;
+        std::vector<cv::Point2f> features;
     };
 
     /********** CLASSES **********/
