@@ -24,11 +24,11 @@ int main(int argc, char** argv)
 	//KeyPoints, descriptors and matches vectors
 	std::vector<cv::KeyPoint> frm_key_points;
 	std::vector<std::vector<cv::KeyPoint>> objs_key_points;
-	
+
 	cv::Mat frm_descriptors;
 	std::vector<cv::Mat> objs_descriptors;
-	
-	std::vector<cv::DMatch> matches, best_matches; 
+
+	std::vector<cv::DMatch> matches, best_matches;
 
 	//default parameters still need to try changing them (tried only a little)
 	auto ORB = cv::ORB::create(1000, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, 20);
@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 	auto matcher = cv::BFMatcher::create(cv::NORM_HAMMING);
 
 
-	//load objects , resize and turn to grayscale
+	//load objects, resize and turn to grayscale
 	for (int i = 0; i < filenames.size(); ++i) {
 		obj = cv::imread(filenames[i], 1);
 
@@ -69,24 +69,25 @@ int main(int argc, char** argv)
 	ORB->detect(frame, frm_key_points);
 	ORB->compute(frame, frm_key_points, frm_descriptors);
 
-	//match descriptors
-	matcher->match(objs_descriptors[0], frm_descriptors, matches);
-
-	// find best matches
-	float min_dist = INFINITY;
-	for (auto match : matches) {
-		if (match.distance < min_dist) {
-			min_dist = match.distance;
-		}
-	}
-	float dist_threshold = min_dist * 2;
-	for (size_t j = 0;j < matches.size();++j) {
-		if (matches[j].distance <= dist_threshold) {
-			best_matches.push_back(matches[j]);
-		}
-	}
 	// show matches for each book
 	for (int i = 0; i < objects.size(); ++i) {
+
+		//match descriptors
+		matcher->match(objs_descriptors[i], frm_descriptors, matches);
+
+		// find best matches
+		float min_dist = INFINITY;
+		for (auto match : matches) {
+			if (match.distance < min_dist) {
+				min_dist = match.distance;
+			}
+		}
+		float dist_threshold = min_dist * 2;
+		for (size_t j = 0;j < matches.size();++j) {
+			if (matches[j].distance <= dist_threshold) {
+				best_matches.push_back(matches[j]);
+			}
+		}
 
 		cv::drawMatches(objects[i], objs_key_points[i], frame, frm_key_points, best_matches, matches_image);
 
