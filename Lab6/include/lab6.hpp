@@ -38,7 +38,7 @@ namespace lab6
     /* Rectangular object in an image. */
     struct ImgObject
     {
-        std::array<cv::Point2f, 4> vertices;
+        std::vector<cv::Point2f> vertices{ 4 };
         std::vector<cv::Point2f> features;
     };
 

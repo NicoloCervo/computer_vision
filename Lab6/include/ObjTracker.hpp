@@ -16,9 +16,9 @@ namespace lab6
     public:
         /********** CONSTANTS **********/
         static constexpr std::string_view win_name{ "Tracking" };
-        static constexpr int frame_delay{ 50 };
+        static constexpr int frame_delay{ 35 };
         static constexpr int def_obj_num{ 4 };
-        static constexpr int feature_radius{ 1 };
+        static constexpr int feature_radius{ 2 };
         static const std::array<cv::Scalar, def_obj_num + 1> colours;
 
         /********** CONSTRUCTOR **********/
@@ -28,7 +28,7 @@ namespace lab6
         );
 
         /********** METHODS **********/
-        void run();
+        bool run();
 
     private:
         cv::VideoCapture& vid_;
