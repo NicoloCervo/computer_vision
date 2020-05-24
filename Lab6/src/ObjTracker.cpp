@@ -7,10 +7,10 @@ using namespace lab6;
 
 const std::array<cv::Scalar, ObjTracker::def_obj_num + 1> ObjTracker::colours
 {
-    cv::Scalar{ 255, 0, 0 },
-    cv::Scalar{ 0, 255, 0 },
     cv::Scalar{ 0, 0, 255 },
-    cv::Scalar{ 255, 255, 0 },
+    cv::Scalar{ 0, 255, 0 },
+    cv::Scalar{ 255, 0, 0 },
+    cv::Scalar{ 0, 255, 255 },
     cv::Scalar{ 255, 255, 255 }
 };
 
@@ -39,6 +39,7 @@ void ObjTracker::run()
         int objId{ 0 };
         for (auto obj : objects_)
         {
+            int colourId{ std::clamp(objId, 0, def_obj_num) };
             /* Compute the optical flow of the object. */
             std::vector<cv::Point2f> nextPts;
             std::vector<unsigned char> status;
@@ -55,7 +56,7 @@ void ObjTracker::run()
                         outputFrame,
                         obj.features.emplace_back(nextPts[i]),
                         feature_radius,
-                        colours[std::clamp(objId, 0, def_obj_num)]
+                        colours[colourId]
                     );
                 }
             }
@@ -72,14 +73,14 @@ void ObjTracker::run()
                     cv::drawMarker(
                         outputFrame,
                         nextPts[i],
-                        colours[std::clamp(objId, 0, def_obj_num)],
+                        colours[colourId],
                         cv::MARKER_CROSS
                     );
                 }
             }
 
             /* Draw the box that surrounds the object. */
-            cv::polylines(outputFrame, obj.vertices, true, colours[std::clamp(objId, 0, def_obj_num)]);
+            cv::polylines(outputFrame, obj.vertices, true, colours[colourId]);
 
             ++objId;
         }
