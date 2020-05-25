@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 
     //default parameters still need to try changing them (tried only a little)
     //auto ORB = cv::ORB::create(1000, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, 20);
-    auto SIFT = cv::xfeatures2d::SIFT::create(5000);
+    auto SIFT = cv::xfeatures2d::SIFT::create(3000);
 
     //auto matcher = cv::BFMatcher::create(cv::NORM_HAMMING);
     auto matcher = cv::BFMatcher::create(cv::NORM_L2, true);

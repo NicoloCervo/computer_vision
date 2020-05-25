@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <limits>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
 #include <string>
@@ -16,7 +17,7 @@ const std::array<cv::Scalar, ObjTracker::def_obj_num + 1> ObjTracker::colours
     cv::Scalar{ 0, 255, 255 },
     cv::Scalar{ 255, 255, 255 }
 };
-const cv::Size ObjTracker::lk_win_size{ 9, 9 };
+const cv::Size ObjTracker::lk_win_size{ 7, 7 };
 const cv::Point ObjTracker::frame_time_coord{ 15, 15 };
 const cv::Scalar ObjTracker::frame_time_colour{ 0, 255, 0 };
 
@@ -46,41 +47,54 @@ bool ObjTracker::run()
     Log::info("Beginning object tracking.");
     while (!nextFrame.empty())
     {
+        Log::info_d("*** NEW FRAME ***");
         auto startTime = high_resolution_clock::now();
 
         cv::Mat outputFrame{ nextFrame.clone() };
 
-        int objId{ 0 };
-        for (auto& obj : objects_)
+        for (int i = 0; i < objects_.size(); ++i)
         {
-            int colourId{ std::clamp(objId, 0, def_obj_num) };
+            Log::info_d("Object %d.", i);
+            int colourId{ std::min(i, def_obj_num) };
+
             /* Compute the optical flow of the object. */
             std::vector<cv::Point2f> nextPts;
             std::vector<uchar> status;
             std::vector<float> error;
 
-            cv::calcOpticalFlowPyrLK(prevFrame, nextFrame, obj.features, nextPts, status, error, lk_win_size);
+            Log::info_d("Computing optical flow.");
+            cv::calcOpticalFlowPyrLK(prevFrame, nextFrame, objects_[i].features, nextPts, status, error, lk_win_size);
+
+            /* Compute the error threshold. */
+            float minErr{ std::numeric_limits<float>::infinity() };
+            for (int j = 0; j < status.size(); ++j)
+            {
+                if (status[i] == 1 && error[i] < minErr) minErr = error[i];
+            }
+            float errorTh{ minErr * err_th_coeff };
+            Log::info_d("Error threshold: %f", errorTh);
 
             /* Move object features and draw them. */
             std::vector<cv::Point2f> newFeatures;
-            newFeatures.reserve(obj.features.size());
+            newFeatures.reserve(objects_[i].features.size());
 
-            auto featIt = obj.features.begin();
-            for (int i = 0; i < status.size(); ++i)
+            auto featIt = objects_[i].features.begin();
+            for (int j = 0; j < status.size(); ++j)
             {
-                if (status[i] == 1)
+                if (status[j] == 1 && error[j] <= errorTh)
                 {
                     cv::circle(
                         outputFrame,
-                        newFeatures.emplace_back(nextPts[i]),
+                        newFeatures.emplace_back(nextPts[j]),
                         feature_radius,
-                        colours[colourId]
+                        colours[colourId],
+                        feature_thickness
                     );
                     ++featIt;
                 }
                 else
                 {
-                    featIt = obj.features.erase(featIt);
+                    featIt = objects_[i].features.erase(featIt);
                 }
             }
             if (newFeatures.empty())
@@ -88,37 +102,49 @@ bool ObjTracker::run()
                 Log::error("No features remaining for object %d.", colourId);
                 return false;
             }
+            Log::info_d(
+                "Current features / Previous features: %d/%d.",
+                newFeatures.size(),
+                objects_[i].features.size()
+            );
 
             /* Compute the new positions of the vertices. */
+            Log::info_d("Computing homography.");
             cv::Mat mask;
-            cv::Mat H{ cv::findHomography(obj.features, newFeatures, mask, cv::RANSAC) };
-            obj.features = newFeatures;
+            cv::Mat H{ cv::findHomography(objects_[i].features, newFeatures, mask, cv::RANSAC) };
+            if (H.empty())
+            {
+                Log::error("Failed to compute homography matrix.");
+                return false;
+            }
+            objects_[i].features = newFeatures;
 
+            Log::info_d("Applying homography.");
             std::vector<cv::Point2f> newVertices;
-            cv::perspectiveTransform(obj.vertices, newVertices, H);
-            obj.vertices = newVertices;
+            cv::perspectiveTransform(objects_[i].vertices, newVertices, H);
+            objects_[i].vertices = newVertices;
 
             /* Move and draw the object's vertices. */
-            for (int i = 0; i < obj.vertices.size(); ++i)
+            Log::info_d("Drawing vertices.");
+            for (int j = 0; j < objects_[i].vertices.size(); ++j)
             {
                 cv::drawMarker(
                     outputFrame,
-                    obj.vertices[i],
+                    objects_[i].vertices[j],
                     colours[colourId],
                     cv::MARKER_CROSS
                 );
             }
 
             /* Draw the box that surrounds the object. */
+            Log::info_d("Drawing boxes.");
             std::vector<cv::Point> vertices;
             vertices.reserve(4);
-            for (const auto vertex : obj.vertices)
+            for (const auto vertex : objects_[i].vertices)
             {
                 vertices.emplace_back(vertex);
             }
             cv::polylines(outputFrame, vertices, true, colours[colourId]);
-
-            ++objId;
         }
 
 
