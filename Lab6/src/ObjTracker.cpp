@@ -1,8 +1,10 @@
 #include "ObjTracker.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
+#include <string>
 
 using namespace lab6;
 
@@ -14,6 +16,9 @@ const std::array<cv::Scalar, ObjTracker::def_obj_num + 1> ObjTracker::colours
     cv::Scalar{ 0, 255, 255 },
     cv::Scalar{ 255, 255, 255 }
 };
+const cv::Size ObjTracker::lk_win_size{ 9, 9 };
+const cv::Point ObjTracker::frame_time_coord{ 15, 15 };
+const cv::Scalar ObjTracker::frame_time_colour{ 0, 255, 0 };
 
 ObjTracker::ObjTracker(
     cv::VideoCapture& vid,
@@ -26,6 +31,10 @@ ObjTracker::ObjTracker(
 
 bool ObjTracker::run()
 {
+    using std::chrono::high_resolution_clock;
+    using std::chrono::milliseconds;
+    using std::chrono::duration_cast;
+
     /* Initialise the first two video frames. */
     Log::info("Video initialisation.");
     cv::Mat prevFrame{};
@@ -37,6 +46,8 @@ bool ObjTracker::run()
     Log::info("Beginning object tracking.");
     while (!nextFrame.empty())
     {
+        auto startTime = high_resolution_clock::now();
+
         cv::Mat outputFrame{ nextFrame.clone() };
 
         int objId{ 0 };
@@ -48,7 +59,7 @@ bool ObjTracker::run()
             std::vector<uchar> status;
             std::vector<float> error;
 
-            cv::calcOpticalFlowPyrLK(prevFrame, nextFrame, obj.features, nextPts, status, error);
+            cv::calcOpticalFlowPyrLK(prevFrame, nextFrame, obj.features, nextPts, status, error, lk_win_size);
 
             /* Move object features and draw them. */
             std::vector<cv::Point2f> newFeatures;
@@ -110,11 +121,25 @@ bool ObjTracker::run()
             ++objId;
         }
 
+
+        auto currentFrameTime = duration_cast<milliseconds>(high_resolution_clock::now() - startTime);
+
+        std::string frameTimeStr{ "Frame time: " + std::to_string(currentFrameTime.count()) + "ms" };
+        cv::putText(
+            outputFrame,
+            frameTimeStr,
+            frame_time_coord,
+            cv::HersheyFonts::FONT_HERSHEY_PLAIN,
+            font_scale,
+            frame_time_colour
+        );
+
         outputWin_.showImg(outputFrame);
         prevFrame = nextFrame.clone();
         vid_ >> nextFrame;
 
-        cv::waitKey(frame_delay);
+        if (currentFrameTime <= frame_time) cv::waitKey(frame_time.count() - currentFrameTime.count());
+        else cv::waitKey(1);
     }
 
     return true;
