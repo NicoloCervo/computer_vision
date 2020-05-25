@@ -14,6 +14,12 @@
 namespace lab6
 {
     /********** CONSTANTS **********/
+#ifdef LAB6_DEBUG_MSGS
+    constexpr bool debug_msgs{ true };
+#else
+    constexpr bool debug_msgs{ false };
+#endif
+
     constexpr double pi{ 3.14159265358979 };
 
     /********** ENUMS **********/
@@ -56,6 +62,7 @@ namespace lab6
             "--------------------------------------------------------------------------------";
 
         /********** METHODS **********/
+        /* Standard versions, always active. */
         template <typename... Args>
         static void info(std::string_view msg, Args... args)
         {
@@ -89,6 +96,51 @@ namespace lab6
             std::printf("\n\033[0m");
         }
 
+        /* Debug versions, only active if debug_msgs is true. */
+        template <typename... Args>
+        static void info_d(std::string_view msg, Args... args)
+        {
+            if constexpr (debug_msgs)
+            {
+                std::scoped_lock lck(mtx_);
+                std::printf("\033[1;37m[DINFO - T%d] - ", std::this_thread::get_id());
+                std::printf(msg.data(), args...);
+                std::printf("\n\033[0m");
+            }
+        }
+        template <typename... Args>
+        static void warn_d(std::string_view msg, Args... args)
+        {
+            if constexpr (debug_msgs)
+            {
+                std::scoped_lock lck(mtx_);
+                std::printf("\033[0;33m[DWARN - T%d] - ", std::this_thread::get_id());
+                std::printf(msg.data(), args...);
+                std::printf("\n\033[0m");
+            }
+        }
+        template <typename... Args>
+        static void error_d(std::string_view msg, Args... args)
+        {
+            if constexpr (debug_msgs)
+            {
+                std::scoped_lock lck(mtx_);
+                std::printf("\033[0;31m[DERROR - T%d] - ", std::this_thread::get_id());
+                std::printf(msg.data(), args...);
+                std::printf("\n\033[0m");
+            }
+        }
+        template <typename... Args>
+        static void fatal_d(std::string_view msg, Args... args)
+        {
+            if constexpr (debug_msgs)
+            {
+                std::scoped_lock lck(mtx_);
+                std::printf("\033[0;35m[DFATAL - T%d] - ", std::this_thread::get_id());
+                std::printf(msg.data(), args...);
+                std::printf("\n\033[0m");
+            }
+        }
     private:
         static std::mutex mtx_;
     };
