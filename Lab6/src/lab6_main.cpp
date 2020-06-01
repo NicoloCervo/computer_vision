@@ -14,14 +14,15 @@
 
 using lab6::Log;
 
+
 int main(int argc, char** argv)
 {
     // get video
-    cv::String filename = "data/Lab_6_data/video.mov";
+    cv::String filename = "C:/Lab6/Lab_6_data/video.mov";
     auto cap = cv::VideoCapture(filename);
 
     // get objects
-    cv::String folder = "data/Lab_6_data/objects/*.png"; //images folder
+    cv::String folder = "C:/Lab6/Lab_6_data/objects/*.png"; //images folder
     std::vector<cv::String> filenames;
     std::vector<cv::Mat> objects; // books
     cv::Mat obj, big_obj, frame, matches_image;
@@ -36,48 +37,25 @@ int main(int argc, char** argv)
 
     std::vector<cv::DMatch> matches;
 
-    //default parameters still need to try changing them (tried only a little)
-    //auto ORB = cv::ORB::create(1000, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, 20);
-    auto SIFT = cv::xfeatures2d::SIFT::create(3000);
-
-    //auto matcher = cv::BFMatcher::create(cv::NORM_HAMMING);
-    auto matcher = cv::BFMatcher::create(cv::NORM_L2, true);
-
-
-    //load objects , resize and turn to grayscale
+    //load objects
     for (int i = 0; i < filenames.size(); ++i) {
         obj = cv::imread(filenames[i], 1);
+        objects.push_back(obj);
 
-        //center image to avoid missing borders with ORB (finds sometimes book corners)
-        cv::Mat centered_obj(obj.rows + 400, obj.cols + 200, obj.type());
-        obj.copyTo(centered_obj(cv::Rect(100, 100, obj.cols, obj.rows)));
-        objects.push_back(centered_obj);
-
-        /*   RESIZE, EQUALIZE AND BLUR, did not help
-        cv::Size dsize(big_obj.cols / 3, big_obj.rows / 3);
-        cv::resize(big_obj, obj, dsize, 0, 0, cv::INTER_LINEAR);
-        cv::cvtColor(objects[i], objects[i], cv::COLOR_BGR2GRAY);
-        cv::equalizeHist(objects[i], objects[i]);
-        cv::GaussianBlur(objects[i], objects[i], cv::Size(3, 3), 1, 1);
-        */
     }
-    //compute objects descriptors
-    //ORB->detect(objects, objs_key_points);
-    //ORB->compute(objects, objs_key_points, objs_descriptors);
-    SIFT->detect(objects, objs_key_points);
-    SIFT->compute(objects, objs_key_points, objs_descriptors);
 
     //load first frame
     cap.read(frame);
 
-    /* //frame hist equalization
-    cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
-    cv::equalizeHist(frame, frame);
-    */
+    auto SIFT = cv::xfeatures2d::SIFT::create(3000);
+
+    auto matcher = cv::BFMatcher::create(cv::NORM_L2, true);
+
+    //compute objects descriptors
+    SIFT->detect(objects, objs_key_points);
+    SIFT->compute(objects, objs_key_points, objs_descriptors);
 
     //compute first frame descriptors
-    //ORB->detect(frame, frm_key_points);
-    //ORB->compute(frame, frm_key_points, frm_descriptors);
     SIFT->detect(frame, frm_key_points);
     SIFT->compute(frame, frm_key_points, frm_descriptors);
 
@@ -101,17 +79,6 @@ int main(int argc, char** argv)
                 best_matches[i].push_back(matches[j]);
             }
         }
-
-        cv::drawMatches(objects[i], objs_key_points[i], frame, frm_key_points, best_matches[i], matches_image);
-
-        //resize for visualization, only for low res monitor
-        cv::Mat res;
-        cv::Size dsize(matches_image.cols / 2, matches_image.rows / 2);
-        cv::resize(matches_image, res, dsize, 0, 0, cv::INTER_LINEAR);
-
-        cv::namedWindow("frame", 1);
-        cv::imshow("frame", res);
-        cv::waitKey();
     }
 
     /* Prepare object tracking. */
@@ -132,6 +99,16 @@ int main(int argc, char** argv)
 
         cv::Mat mask{};
         cv::Mat H{ cv::findHomography(srcPts, templates[i].features, mask, cv::RANSAC) };
+
+		/*apply mask to the features*/
+		std::vector<std::vector<cv::Point2f>> temp_features;
+		temp_features.resize(objects.size());
+		for (int mask_idx = 0; mask_idx < mask.rows; mask_idx++) {
+			if (mask.at<bool>(mask_idx, 0)) { temp_features[i].push_back(templates[i].features[mask_idx]); }
+		}
+		templates[i].features = temp_features[i];
+
+
         std::vector<cv::Point2f> vertices
         {
             cv::Point2f{ 0, 0 },

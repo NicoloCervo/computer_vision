@@ -17,7 +17,7 @@ const std::array<cv::Scalar, ObjTracker::def_obj_num + 1> ObjTracker::colours
     cv::Scalar{ 0, 255, 255 },
     cv::Scalar{ 255, 255, 255 }
 };
-const cv::Size ObjTracker::lk_win_size{ 7, 7 };
+const cv::Size ObjTracker::lk_win_size{ 21, 21 };
 const cv::Point ObjTracker::frame_time_coord{ 15, 15 };
 const cv::Scalar ObjTracker::frame_time_colour{ 0, 255, 0 };
 
