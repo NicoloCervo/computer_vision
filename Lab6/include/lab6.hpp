@@ -67,7 +67,9 @@ namespace lab6
         static void info(std::string_view msg, Args... args)
         {
             std::scoped_lock lck(mtx_);
-            std::printf("\033[1;37m[INFO - T%d] - ", std::this_thread::get_id());
+            std::stringstream s;
+            s << std::this_thread::get_id();
+            std::printf("\033[1;37m[INFO - T%s] - ", s.str().c_str());
             std::printf(msg.data(), args...);
             std::printf("\n\033[0m");
         }
@@ -75,7 +77,9 @@ namespace lab6
         static void warn(std::string_view msg, Args... args)
         {
             std::scoped_lock lck(mtx_);
-            std::printf("\033[0;33m[WARN - T%d] - ", std::this_thread::get_id());
+            std::stringstream s;
+            s << std::this_thread::get_id();
+            std::printf("\033[0;33m[WARN - T%s] - ", s.str().c_str());
             std::printf(msg.data(), args...);
             std::printf("\n\033[0m");
         }
@@ -83,7 +87,9 @@ namespace lab6
         static void error(std::string_view msg, Args... args)
         {
             std::scoped_lock lck(mtx_);
-            std::printf("\033[0;31m[ERROR - T%d] - ", std::this_thread::get_id());
+            std::stringstream s;
+            s << std::this_thread::get_id();
+            std::printf("\033[0;31m[ERROR - T%s] - ", s.str().c_str());
             std::printf(msg.data(), args...);
             std::printf("\n\033[0m");
         }
@@ -91,7 +97,9 @@ namespace lab6
         static void fatal(std::string_view msg, Args... args)
         {
             std::scoped_lock lck(mtx_);
-            std::printf("\033[0;35m[FATAL - T%d] - ", std::this_thread::get_id());
+            std::stringstream s;
+            s << std::this_thread::get_id();
+            std::printf("\033[0;35m[FATAL - T%s] - ", s.str().c_str());
             std::printf(msg.data(), args...);
             std::printf("\n\033[0m");
         }
@@ -103,7 +111,9 @@ namespace lab6
             if constexpr (debug_msgs)
             {
                 std::scoped_lock lck(mtx_);
-                std::printf("\033[1;37m[DINFO - T%d] - ", std::this_thread::get_id());
+                std::stringstream s;
+                s << std::this_thread::get_id();
+                std::printf("\033[1;37m[DINFO - T%s] - ", s.str().c_str());
                 std::printf(msg.data(), args...);
                 std::printf("\n\033[0m");
             }
@@ -114,7 +124,9 @@ namespace lab6
             if constexpr (debug_msgs)
             {
                 std::scoped_lock lck(mtx_);
-                std::printf("\033[0;33m[DWARN - T%d] - ", std::this_thread::get_id());
+                std::stringstream s;
+                s << std::this_thread::get_id();
+                std::printf("\033[0;33m[DWARN - T%s] - ", s.str().c_str());
                 std::printf(msg.data(), args...);
                 std::printf("\n\033[0m");
             }
@@ -125,7 +137,9 @@ namespace lab6
             if constexpr (debug_msgs)
             {
                 std::scoped_lock lck(mtx_);
-                std::printf("\033[0;31m[DERROR - T%d] - ", std::this_thread::get_id());
+                std::stringstream s;
+                s << std::this_thread::get_id();
+                std::printf("\033[0;31m[DERROR - T%s] - ", s.str().c_str());
                 std::printf(msg.data(), args...);
                 std::printf("\n\033[0m");
             }
@@ -136,7 +150,9 @@ namespace lab6
             if constexpr (debug_msgs)
             {
                 std::scoped_lock lck(mtx_);
-                std::printf("\033[0;35m[DFATAL - T%d] - ", std::this_thread::get_id());
+                std::stringstream s;
+                s << std::this_thread::get_id();
+                std::printf("\033[0;35m[DFATAL - T%s] - ", s.str().c_str());
                 std::printf(msg.data(), args...);
                 std::printf("\n\033[0m");
             }
