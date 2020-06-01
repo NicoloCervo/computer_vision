@@ -11,6 +11,14 @@
 #include <cstdlib>
 #include <stdio.h>
 
+// List of command line arguments.
+enum class Arg
+{
+    vid = 1, // Input video
+    obj_folder, // Object templates.
+    tot
+};
+
 cv::Point2f operator*(cv::Mat M, const cv::Point2f& p) {
 
     cv::Mat_<double> src(3, 1);
@@ -88,15 +96,31 @@ using lab6::Log;
 
 int main(int argc, char** argv)
 {
+    // Command line arguments check.
+    if (argc < static_cast<int>(Arg::tot))
+    {
+        Log::fatal("Required parameters: <video> <templates folder>");
+        return -1;
+    }
+
     // get video
-    cv::String filename = "data/Lab_6_data/video.mov";
-    auto cap = cv::VideoCapture(filename);
+    Log::info("Loading video.");
+    auto cap = cv::VideoCapture(argv[static_cast<int>(Arg::vid)]);
+    if (!cap.isOpened())
+    {
+        Log::fatal("Failed to open video %s.", argv[static_cast<int>(Arg::vid)]);
+        return -1;
+    }
 
     // get objects file names
-    cv::String folder = "data/Lab_6_data/objects/*.png"; //images folder
     std::vector<cv::String> filenames;
     std::vector<cv::Mat> objects;
-    cv::glob(folder, filenames);
+    cv::glob(argv[static_cast<int>(Arg::obj_folder)], filenames);
+    if (filenames.empty())
+    {
+        Log::fatal("No template images in folder %s.", argv[static_cast<int>(Arg::obj_folder)]);
+        return -1;
+    }
 
     cv::Mat obj, frame, frame_temp;
     std::vector < std::vector<cv::Point2f>> obj_points_hom, frm_points_hom;
@@ -105,14 +129,22 @@ int main(int argc, char** argv)
     cap.read(frame);
 
     //load objects
+    Log::info("Loading templates.");
     for (int i = 0; i < filenames.size(); ++i) {
         obj = cv::imread(filenames[i], 1);
+        if (obj.empty())
+        {
+            Log::fatal("Failed to open image %s.", filenames[i].c_str());
+            return -1;
+        }
         objects.push_back(obj);
     }
 
+    Log::info("Computing features.");
     findMatches(objects, frame, obj_points_hom, frm_points_hom);
 
     /* Prepare object tracking. */
+    Log::info("Initialising tracking data.");
     cap.set(cv::CAP_PROP_POS_FRAMES, 0);
     std::vector<lab6::ImgObject> templates{ objects.size() };
 
@@ -151,7 +183,9 @@ int main(int argc, char** argv)
     }
 
     /* Run object tracking. */
+    Log::info("Initialising object tracker.");
     lab6::ObjTracker tracker{ cap, templates };
+    Log::info("Starting object tracker.");
     if (!tracker.run())
     {
         Log::fatal("Failed to track objects.");
