@@ -21,7 +21,8 @@ namespace lab6
         static constexpr int def_obj_num{ 4 };
         static constexpr int feature_radius{ 2 };
         static constexpr int feature_thickness{ 2 };
-        static constexpr float err_th_coeff{ 6 };
+        static constexpr float min_base_err{ 1.0F };
+        static constexpr float err_th_coeff{ 5.0F };
 
         static const std::array<cv::Scalar, def_obj_num + 1> colours;
         static const cv::Size lk_win_size;

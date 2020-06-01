@@ -17,7 +17,7 @@ const std::array<cv::Scalar, ObjTracker::def_obj_num + 1> ObjTracker::colours
     cv::Scalar{ 0, 255, 255 },
     cv::Scalar{ 255, 255, 255 }
 };
-const cv::Size ObjTracker::lk_win_size{ 21, 21 };
+const cv::Size ObjTracker::lk_win_size{ 11, 11 };
 const cv::Point ObjTracker::frame_time_coord{ 15, 15 };
 const cv::Scalar ObjTracker::frame_time_colour{ 0, 255, 0 };
 
@@ -66,12 +66,25 @@ bool ObjTracker::run()
             cv::calcOpticalFlowPyrLK(prevFrame, nextFrame, objects_[i].features, nextPts, status, error, lk_win_size);
 
             /* Compute the error threshold. */
-            float minErr{ std::numeric_limits<float>::infinity() };
+            float avgErr{ 0 };
+            int count{ 0 };
             for (int j = 0; j < status.size(); ++j)
             {
-                if (status[i] == 1 && error[i] < minErr) minErr = error[i];
+                if (status[j] == 1)
+                {
+                    avgErr += error[i];
+                    ++count;
+                }
             }
-            float errorTh{ minErr * err_th_coeff };
+            if (count == 0)
+            {
+                Log::error("No features found.");
+                return false;
+            }
+
+            avgErr = std::max(avgErr / count, min_base_err);
+            float errorTh{ avgErr * err_th_coeff };
+            Log::info_d("Average error: %f.", avgErr);
             Log::info_d("Error threshold: %f", errorTh);
 
             /* Move object features and draw them. */
@@ -94,6 +107,7 @@ bool ObjTracker::run()
                 }
                 else
                 {
+                    Log::warn("Erasing feature with error %f.", error[j]);
                     featIt = objects_[i].features.erase(featIt);
                 }
             }
@@ -132,7 +146,9 @@ bool ObjTracker::run()
                     outputFrame,
                     objects_[i].vertices[j],
                     colours[colourId],
-                    cv::MARKER_CROSS
+                    cv::MARKER_CROSS,
+                    20,
+                    feature_thickness
                 );
             }
 
@@ -144,9 +160,8 @@ bool ObjTracker::run()
             {
                 vertices.emplace_back(vertex);
             }
-            cv::polylines(outputFrame, vertices, true, colours[colourId]);
+            cv::polylines(outputFrame, vertices, true, colours[colourId], feature_thickness);
         }
-
 
         auto currentFrameTime = duration_cast<milliseconds>(high_resolution_clock::now() - startTime);
 
