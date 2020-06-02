@@ -179,7 +179,7 @@ bool ObjTracker::run()
         prevFrame = nextFrame.clone();
         vid_ >> nextFrame;
 
-        if (currentFrameTime <= frame_time) cv::waitKey(frame_time.count() - currentFrameTime.count());
+        if (currentFrameTime < frame_time) cv::waitKey(frame_time.count() - currentFrameTime.count());
         else cv::waitKey(1);
     }
 
